@@ -58,7 +58,7 @@ class MolTensor2D(object):
                 return False
         return True
 
-def create_and_write_mol_graph_tensors(smiles_file, tensor_dir, label_col,smiles_col='smiles',tensor_type='torch'):
+def create_and_write_mol_graph_tensors(smiles_file, tensor_dir, label_col,label_type='binary',smiles_col='smiles',tensor_type='torch',delim='\t'):
     '''
 
     :param smiles_file: path to csv file containing smiles
@@ -71,11 +71,18 @@ def create_and_write_mol_graph_tensors(smiles_file, tensor_dir, label_col,smiles
     if not os.path.exists(tensor_dir):
         os.makedirs(tensor_dir)
 
-    df = moldata.load_smiles_df(smiles_file)
+    df = moldata.load_smiles_df(smiles_file,delim=delim)
     #label = np.asarray([1., 0.]).reshape((1, 2)).astype(np.float32)
-    for idx, val in df.iterrows():
-        label = np.asarray(val[label_col]).astype(np.float32)
-        tens = MolTensor2D('true' + str(idx), val[smiles_col], label, moldata.get_basic_atom_vec, moldata.get_bond_vec,
+    for idx, row in df.iterrows():
+        if label_type == 'binary':
+            label = np.zeros((1,2)).astype(np.float32)
+            ii = int(row[label_col])
+            label[0,ii] = 1.
+        if label_type == 'regression':
+            label = np.zeros((1,1)).astype(np.float32)
+            label[0] = row[label_col]
+        #label = np.asarray((row[label_col])).astype(np.float32)
+        tens = MolTensor2D('mol' + str(idx), row[smiles_col], label, moldata.get_basic_atom_vec, moldata.get_bond_vec,
                            vec_size=None)
 
         if tens.isvalid():
